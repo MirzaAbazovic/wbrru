@@ -1,0 +1,449 @@
+openapi: 3.0.3 
+
+info: 
+
+  title: WBRRU Operator Dashboard API 
+
+  version: 1.1.0 
+
+  description: REST API supporting the National Authority Operator Dashboard. 
+
+paths: 
+
+  /messages: 
+
+    get: 
+
+      summary: List and filter message status 
+
+      operationId: getMessages 
+
+      parameters: 
+
+        - name: rpFilter 
+
+          in: query 
+
+          schema: 
+
+            type: string 
+
+        - name: messageType 
+
+          in: query 
+
+          schema: 
+
+            type: string 
+
+            enum: [CTUD, CGR, INF, NCR] 
+
+        - name: status 
+
+          in: query 
+
+          schema: 
+
+            type: string 
+
+            enum: [Success, Error, Pending] 
+
+      responses: 
+
+        '200': 
+
+          description: A list of messages 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                type: array 
+
+                items: 
+
+                  $ref: '#/components/schemas/Message' 
+
+  /messages/{messageId}: 
+
+    get: 
+
+      summary: View message details and XML payload 
+
+      operationId: getMessageDetails 
+
+      parameters: 
+
+        - name: messageId 
+
+          in: path 
+
+          required: true 
+
+          schema: 
+
+            type: string 
+
+      responses: 
+
+        '200': 
+
+          description: Message details and raw payload 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                $ref: '#/components/schemas/MessageDetail' 
+
+  /messages/{messageId}/resend: 
+
+    post: 
+
+      summary: Resend a message 
+
+      operationId: resendMessage 
+
+      parameters: 
+
+        - name: messageId 
+
+          in: path 
+
+          required: true 
+
+          schema: 
+
+            type: string 
+
+      responses: 
+
+        '200': 
+
+          description: Message queued for resend 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                $ref: '#/components/schemas/ActionResponse' 
+
+  /ctud/search: 
+
+    post: 
+
+      summary: Check Transport Undertaking Data (CTUD) 
+
+      operationId: searchCTUD 
+
+      requestBody: 
+
+        required: true 
+
+        content: 
+
+          application/json: 
+
+            schema: 
+
+              $ref: '#/components/schemas/CTUDSearchRequest' 
+
+      responses: 
+
+        '200': 
+
+          description: Undertaking profile including risk band and statistics 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                $ref: '#/components/schemas/CTUDProfile' 
+
+  /cgr/search: 
+
+    post: 
+
+      summary: Check Good Repute (CGR) 
+
+      operationId: searchCGR 
+
+      requestBody: 
+
+        required: true 
+
+        content: 
+
+          application/json: 
+
+            schema: 
+
+              $ref: '#/components/schemas/CGRSearchRequest' 
+
+      responses: 
+
+        '200': 
+
+          description: Fitness status, certificate validity, and manager details 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                $ref: '#/components/schemas/CGRResult' 
+
+  /documents/upload: 
+
+    post: 
+
+      summary: Inline document upload 
+
+      operationId: uploadDocument 
+
+      requestBody: 
+
+        required: true 
+
+        content: 
+
+          multipart/form-data: 
+
+            schema: 
+
+              type: object 
+
+              properties: 
+
+                file: 
+
+                  type: string 
+
+                  format: binary 
+
+                documentType: 
+
+                  type: string 
+
+      responses: 
+
+        '200': 
+
+          description: Document uploaded and signed locally. 
+
+          content: 
+
+            application/json: 
+
+              schema: 
+
+                $ref: '#/components/schemas/UploadResponse' 
+
+  
+
+components: 
+
+  schemas: 
+
+    Message: 
+
+      type: object 
+
+      properties: 
+
+        messageId: 
+
+          type: string 
+
+        timestamp: 
+
+          type: string 
+
+          format: date-time 
+
+        type: 
+
+          type: string 
+
+          enum: [CTUD, CGR, INF, NCR] 
+
+        requestedBy: 
+
+          type: string 
+
+        status: 
+
+          type: string 
+
+          enum: [Success, Error, Pending] 
+
+    MessageDetail: 
+
+      allOf: 
+
+        - $ref: '#/components/schemas/Message' 
+
+        - type: object 
+
+          properties: 
+
+            rawXmlPayload: 
+
+              type: string 
+
+            errorMessage: 
+
+              type: string 
+
+              nullable: true 
+
+    CTUDSearchRequest: 
+
+      type: object 
+
+      properties: 
+
+        operatorName: 
+
+          type: string 
+
+        communityLicenceNumber: 
+
+          type: string 
+
+        vehicleLicencePlate: 
+
+          type: string 
+
+        targetRp: 
+
+          type: string 
+
+    CTUDProfile: 
+
+      type: object 
+
+      properties: 
+
+        undertakingName: 
+
+          type: string 
+
+        riskBand: 
+
+          type: string 
+
+          enum: [Low, Medium, High, Critical] 
+
+        totalVehicles: 
+
+          type: integer 
+
+        totalEmployees: 
+
+          type: integer 
+
+        licenceDetails: 
+
+          type: object 
+
+          properties: 
+
+            licenceNumber: 
+
+              type: string 
+
+            status: 
+
+              type: string 
+
+            validUntil: 
+
+              type: string 
+
+              format: date-time 
+
+        infringementsCount: 
+
+          type: integer 
+
+    CGRSearchRequest: 
+
+      type: object 
+
+      required: [searchQuery] 
+
+      properties: 
+
+        searchQuery: 
+
+          type: string 
+
+          description: "Name, ID, or CPC number of the transport manager" 
+
+    CGRResult: 
+
+      type: object 
+
+      properties: 
+
+        managerName: 
+
+          type: string 
+
+        fitnessStatus: 
+
+          type: string 
+
+          enum: [Fit, Unfit, Unknown] 
+
+        certificateValidity: 
+
+          type: string 
+
+          enum: [Valid, Suspended, Revoked] 
+
+        respondingMemberState: 
+
+          type: string 
+
+    UploadResponse: 
+
+      type: object 
+
+      properties: 
+
+        documentId: 
+
+          type: string 
+
+        status: 
+
+          type: string 
+
+        signatureApplied: 
+
+          type: boolean 
+
+    ActionResponse: 
+
+      type: object 
+
+      properties: 
+
+        success: 
+
+          type: boolean 
+
+        message: 
+
+          type: string 
